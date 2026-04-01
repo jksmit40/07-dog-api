@@ -2,29 +2,33 @@ const breedSelect = document.getElementById("breed-select");
 const gallery = document.getElementById("gallery");
 
 // Get all breeds from the Dog API.
-fetch("https://dog.ceo/api/breeds/list/all")
-	.then((response) => response.json())
-	.then((data) => {
-		const breeds = Object.keys(data.message).sort();
+async function loadBreeds() {
+	const response = await fetch("https://dog.ceo/api/breeds/list/all").catch(() => null);
 
-		// Add one option for each breed.
-		breeds.forEach((breed) => {
-			const option = document.createElement("option");
-			option.value = breed;
-			option.textContent = breed;
-			breedSelect.append(option);
-		});
-	})
-	.catch(() => {
-		// Show a fallback option if the request fails.
+	if (!response) {
 		const option = document.createElement("option");
 		option.value = "";
 		option.textContent = "Could not load breeds";
 		breedSelect.append(option);
-	});
+		return;
+	}
 
-// When the user selects a breed, fetch one random image for that breed.
-breedSelect.addEventListener("change", () => {
+	const data = await response.json();
+	const breeds = Object.keys(data.message).sort();
+
+	// Add one option for each breed.
+	breeds.forEach((breed) => {
+		const option = document.createElement("option");
+		option.value = breed;
+		option.textContent = breed;
+		breedSelect.append(option);
+	});
+}
+
+loadBreeds();
+
+// When the user selects a breed, fetch 9 random images for that breed.
+breedSelect.addEventListener("change", async () => {
 	const selectedBreed = breedSelect.value;
 
 	if (!selectedBreed) {
@@ -32,17 +36,21 @@ breedSelect.addEventListener("change", () => {
 		return;
 	}
 
-	fetch(`https://dog.ceo/api/breed/${selectedBreed}/images/random`)
-		.then((response) => response.json())
-		.then((data) => {
-			gallery.innerHTML = "";
+	const response = await fetch(`https://dog.ceo/api/breed/${selectedBreed}/images/random/9`).catch(() => null);
 
-			const image = document.createElement("img");
-			image.src = data.message;
-			image.alt = `A ${selectedBreed} dog`;
-			gallery.append(image);
-		})
-		.catch(() => {
-			gallery.innerHTML = "<p>Could not load image.</p>";
-		});
+	if (!response) {
+		gallery.innerHTML = "<p>Could not load images.</p>";
+		return;
+	}
+
+	const data = await response.json();
+	gallery.innerHTML = "";
+
+	// Create an image element for each URL returned by the API.
+	data.message.forEach((imageUrl) => {
+		const image = document.createElement("img");
+		image.src = imageUrl;
+		image.alt = `A ${selectedBreed} dog`;
+		gallery.append(image);
+	});
 });
